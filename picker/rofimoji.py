@@ -47,9 +47,12 @@ def main() -> None:
     if returncode == 1:
         sys.exit()
     else:
-        characters = process_chosen_characters(stdout.splitlines(), args.skin_tone, args.rofi_args)
+        characters, description = process_chosen_characters(
+            stdout.splitlines(),
+            args.skin_tone,
+            args.rofi_args)
 
-        save_characters_to_recent_file(characters, args.max_recent)
+        save_characters_to_recent_file(characters, description, args.max_recent)
 
         if returncode == 0:
             if args.copy_only:
@@ -213,14 +216,16 @@ def process_chosen_characters(
 ) -> str:
     result = ""
     for line in chosen_characters:
-        character = line.decode('utf-8').split(" ")[0]
+        description = line.decode('utf-8')
+        character = description.split(" ")[0]
+
 
         if character in skin_tone_selectable_emojis:
             character = select_skin_tone(character, skin_tone, rofi_args)
 
         result += character
 
-    return result
+    return result, description
 
 
 def select_skin_tone(selected_emoji: chr, skin_tone: str, rofi_args: List[str]) -> str:
@@ -255,19 +260,22 @@ def select_skin_tone(selected_emoji: chr, skin_tone: str, rofi_args: List[str]) 
         return stdout_skin.split()[0].decode('utf-8')
 
 
-def save_characters_to_recent_file(characters: str, max_recent: int):
+def save_characters_to_recent_file(characters: str,
+                                   description: str,
+                                   max_recent: int):
     old_file_name = os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent')
     new_file_name = os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent_temp')
 
+    print(old_file_name)
     os.makedirs(os.path.dirname(new_file_name), exist_ok=True)
     with open(new_file_name, 'w+') as new_file:
-        new_file.write(characters + '\n')
+        new_file.write(description + '\n')
 
         try:
             with open(old_file_name, 'r') as old_file:
                 index = 0
                 for line in old_file:
-                    if characters == line.strip():
+                    if characters == line.split(" ")[0]:
                         continue
                     if index == max_recent:
                         break
