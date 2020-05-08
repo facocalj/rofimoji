@@ -49,6 +49,8 @@ def main() -> None:
     else:
         characters = process_chosen_characters(stdout.splitlines(), args.skin_tone, args.rofi_args)
 
+        save_characters_to_recent_file(characters, args.max_recent)
+
         if returncode == 0:
             if args.copy_only:
                 copy_characters_to_clipboard(characters)
@@ -119,6 +121,13 @@ def parse_arguments() -> argparse.Namespace:
         default='',
         help='A string of arguments to give to rofi'
     )
+    parser.add_argument(
+        '--max-recent',
+        dest='max_recent',
+        action='store',
+        default=10,
+        help='Show at most this number of recently used characters'
+    )
 
     parsed_args = parser.parse_args()
     parsed_args.rofi_args = shlex.split(parsed_args.rofi_args)
@@ -133,6 +142,10 @@ def get_active_window() -> str:
 
 def read_character_files(file_names: List[str]) -> str:
     entries = ''
+
+    recent_file_name = os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent')
+    if os.path.isfile(recent_file_name):
+        file_names.insert(0, os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent'))
 
     if len(file_names) == 1 and file_names[0] == 'all':
         file_names = [os.path.splitext(file)[0] for file in
@@ -240,6 +253,32 @@ def select_skin_tone(selected_emoji: chr, skin_tone: str, rofi_args: List[str]) 
             return ''
 
         return stdout_skin.split()[0].decode('utf-8')
+
+
+def save_characters_to_recent_file(characters: str, max_recent: int):
+    old_file_name = os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent')
+    new_file_name = os.path.join(BaseDirectory.xdg_data_home, 'rofimoji', 'recent_temp')
+
+    os.makedirs(os.path.dirname(new_file_name), exist_ok=True)
+    with open(new_file_name, 'w+') as new_file:
+        new_file.write(characters + '\n')
+
+        try:
+            with open(old_file_name, 'r') as old_file:
+                index = 0
+                for line in old_file:
+                    if characters == line.strip():
+                        continue
+                    if index == max_recent:
+                        break
+                    new_file.write(line)
+                    index = index + 1
+
+            os.remove(old_file_name)
+        except FileNotFoundError:
+            pass
+
+    os.rename(new_file_name, old_file_name)
 
 
 def insert_characters(

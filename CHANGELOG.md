@@ -1,3 +1,8 @@
+# [4.2.0]
+## Added
+- The prompt can now be changed with the `--prompt` parameter.
+- The last *n* inserted character series are saved and offered first. *n* is by default 10 and can be set with the parameter `--max-recent`.
+
 # [4.1.1]
 ## Fixed
 - Whitespace characters can be inserted
